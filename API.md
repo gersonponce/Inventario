@@ -32,6 +32,13 @@ La API usa **sesión con cookie** (no token Bearer). Para conectarse hay que seg
 | Permisos | Cada ruta exige un permiso del rol del usuario (ver tabla en la sección 3) |
 | Cambios de rol | Se aplican desde la siguiente petición (el usuario se recarga cada vez) |
 
+### Postman
+
+Importa `postman/Inventario.postman_collection.json` (Import → archivo). Completa las variables
+`usuario` y `password` de la colección y ejecuta **Sesión → 1. Obtener CSRF** y luego **2. Login**.
+El token se guarda solo en `{{csrf}}` y Postman maneja la cookie; después ya puedes usar cualquier
+petición. Ojo: **Registrar inventario** guarda datos reales y puede enviar alerta a Telegram.
+
 ### Ejemplo con `curl`
 
 ```bash
