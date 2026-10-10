@@ -1,4 +1,4 @@
-# Inventario — Registro de Harina (regharina)
+# Inventario
 
 Aplicación web para registrar **inventarios de cualquier producto**: por cada producto se indica
 cuántas unidades hay (sacos, cajas, bolsas…), cuánto hay suelto ("abierto") y el sistema calcula el
@@ -10,10 +10,9 @@ pero los productos y las unidades de medida son datos de la BD: se pueden agrega
 sin cambiar el código (ver [Productos y unidades de medida](#productos-y-unidades-de-medida)).
 
 - **URL:** https://regharina.stardata.pe (HTTPS con Let's Encrypt, renovación automática)
-- **Carpeta:** `/var/www/projects/regharina`
+- **Carpeta:** `/var/www/projects/inventario`
 - **Repositorio:** https://github.com/gersonponce/Inventario (push con la deploy key `/root/.ssh/inventario_deploy`, alias SSH `github-inventario`)
-- **Servidor:** Ubuntu 24.04 (~1 GB RAM), compartido con el proyecto
-  `reportes` (`/var/www/reportes`, nginx sitio `avp` en el puerto 8123, también usa php8.4-fpm)
+- **Servidor:** Ubuntu 24.04 (~1 GB RAM)
 
 Documentación de la API para integraciones: **[API.md](API.md)**.
 
@@ -49,7 +48,7 @@ Particularidades del servidor:
 ## Estructura
 
 ```
-regharina/
+inventario/
 ├── public/                     ← docroot de nginx
 │   ├── index.html              ← toda la interfaz (Alpine)
 │   ├── api/index.php           ← punto de entrada único de la API (nginx envía /api/* aquí)
@@ -236,8 +235,8 @@ HTTP (400 validación, 401 sesión, 403 permiso/token, 404, 405, 409 duplicado, 
 
 ## nginx
 
-Archivo `/etc/nginx/sites-available/regharina` (enlazado en `sites-enabled`):
-- `root /var/www/projects/regharina/public`, `index index.html`, `Cache-Control: no-cache`.
+Archivo `/etc/nginx/sites-available/inventario` (enlazado en `sites-enabled`):
+- `root /var/www/projects/inventario/public`, `index index.html`, `Cache-Control: no-cache`.
 - `location /api/ { try_files $uri /api/index.php$is_args$args; }` → Slim.
 - PHP por `unix:/run/php/php8.4-fpm.sock`; archivos ocultos (`.env`) → 403.
 - Bloques 443/redirect 80→443 gestionados por Certbot.
@@ -249,7 +248,7 @@ Tras cambiar la config: `nginx -t && systemctl reload nginx`.
 ## Tareas comunes
 
 ```bash
-cd /var/www/projects/regharina
+cd /var/www/projects/inventario
 
 ./build.sh                                   # recompilar CSS tras cambiar clases en index.html/app.js
 COMPOSER_ALLOW_SUPERUSER=1 composer dump-autoload -o   # tras crear clases nuevas en src/
