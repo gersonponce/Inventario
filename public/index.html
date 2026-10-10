@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="es" class="h-full">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Registro de Harina</title>
+  <link rel="stylesheet" href="assets/app.css">
+  <script defer src="assets/app.js"></script>
+  <script defer src="assets/alpine.min.js"></script>
+</head>
+<body class="h-full bg-stone-100 text-stone-800 antialiased dark:bg-stone-950 dark:text-stone-200" x-data="app">
+
+  <!-- Cargando -->
+  <div x-show="cargando" class="grid h-full place-items-center text-sm text-stone-500">Cargando…</div>
+
+  <!-- Login -->
+  <div x-cloak x-show="!cargando && !auth" class="grid min-h-full place-items-center p-4">
+    <form @submit.prevent="login" class="card w-full max-w-sm space-y-5 p-8">
+      <div class="flex items-center gap-3">
+        <div class="grid size-10 place-items-center rounded-xl bg-amber-700 text-sm font-bold text-white">RH</div>
+        <div>
+          <h1 class="text-lg font-semibold">Registro de Harina</h1>
+          <p class="text-sm text-stone-500 dark:text-stone-400">Ingresa para continuar</p>
+        </div>
+      </div>
+      <p x-show="credenciales.error" x-text="credenciales.error" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-300"></p>
+      <label class="block space-y-1.5">
+        <span class="text-sm font-medium">Usuario</span>
+        <input type="text" x-model="credenciales.usuario" required autocomplete="username" autocapitalize="none" spellcheck="false" class="input">
+      </label>
+      <label class="block space-y-1.5">
+        <span class="text-sm font-medium">Contraseña</span>
+        <input type="password" x-model="credenciales.password" required autocomplete="current-password" class="input">
+      </label>
+      <button type="submit" :disabled="enviando" class="btn-primary w-full">Ingresar</button>
+    </form>
+  </div>
+
+  <!-- Aplicación -->
+  <div x-cloak x-show="!cargando && auth" class="flex min-h-full">
+
+    <!-- Fondo del menú en móvil -->
+    <div x-show="menuAbierto" x-transition.opacity @click="menuAbierto = false" class="fixed inset-0 z-30 bg-stone-950/40 lg:hidden"></div>
+
+    <!-- Menú lateral -->
+    <aside :class="menuAbierto ? 'translate-x-0' : '-translate-x-full'"
+           class="fixed inset-y-0 left-0 z-40 flex w-72 shrink-0 flex-col border-r border-stone-200 bg-white transition-transform duration-200
+                  lg:sticky lg:top-0 lg:h-screen lg:w-64 lg:translate-x-0 dark:border-stone-800 dark:bg-stone-900">
+      <div class="flex h-16 items-center gap-3 border-b border-stone-200 px-5 dark:border-stone-800">
+        <div class="grid size-8 place-items-center rounded-lg bg-amber-700 text-xs font-bold text-white">RH</div>
+        <span class="font-semibold">Registro de Harina</span>
+        <button @click="menuAbierto = false" class="ml-auto rounded-md p-1 text-stone-500 lg:hidden" aria-label="Cerrar menú">
+          <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" :d="iconos.cerrar"/></svg>
+        </button>
+      </div>
+
+      <nav class="flex-1 space-y-5 overflow-y-auto p-3">
+        <template x-for="g in menu" :key="g.grupo || '_'">
+         <div class="space-y-1">
+          <p x-show="g.grupo" x-text="g.grupo" class="px-3 pb-1 text-xs font-medium tracking-wide text-stone-400 uppercase dark:text-stone-500"></p>
+          <template x-for="m in g.items" :key="m.id">
+          <a :href="'#/' + m.id"
+             :class="ruta === m.id
+               ? 'bg-amber-50 text-amber-900 dark:bg-amber-500/10 dark:text-amber-300'
+               : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100'"
+             class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium">
+            <svg class="size-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" :d="iconos[m.icono]"/></svg>
+            <span x-text="m.titulo"></span>
+          </a>
+          </template>
+         </div>
+        </template>
+      </nav>
+
+      <div class="space-y-1 border-t border-stone-200 p-3 dark:border-stone-800">
+        <div class="flex items-center gap-3 px-3 py-2">
+          <div class="grid size-8 shrink-0 place-items-center rounded-full bg-stone-200 text-xs font-semibold text-stone-700 dark:bg-stone-700 dark:text-stone-200" x-text="iniciales(usuario?.nombre)"></div>
+          <div class="min-w-0">
+            <p class="truncate text-sm font-medium" x-text="usuario?.nombre"></p>
+            <p class="truncate text-xs text-stone-500 dark:text-stone-400" x-text="usuario?.rol"></p>
+          </div>
+        </div>
+        <button @click="abrirPassword" class="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-stone-600 hover:bg-stone-100 hover:text-stone-900 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100">
+          <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" :d="iconos.llave"/></svg>
+          Cambiar contraseña
+        </button>
+        <button @click="logout" class="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-stone-600 hover:bg-stone-100 hover:text-stone-900 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100">
+          <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" :d="iconos.salir"/></svg>
+          Salir
+        </button>
+      </div>
+    </aside>
+
+    <!-- Contenido -->
+    <div class="flex min-w-0 flex-1 flex-col">
+      <header class="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-stone-200 bg-white/85 px-4 backdrop-blur lg:px-8 dark:border-stone-800 dark:bg-stone-900/85">
+        <button @click="menuAbierto = true" class="-ml-1 rounded-md p-1.5 text-stone-600 hover:bg-stone-100 lg:hidden dark:text-stone-300 dark:hover:bg-stone-800" aria-label="Abrir menú">
+          <svg class="size-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" :d="iconos.menu"/></svg>
+        </button>
+        <h1 class="text-lg font-semibold" x-text="moduloActual?.titulo"></h1>
+      </header>
+
+      <main class="mx-auto w-full max-w-5xl flex-1 space-y-6 p-4 lg:p-8">
+
+        <p x-show="!modulos.length" class="card px-5 py-10 text-center text-sm text-stone-500 dark:text-stone-400">
+          Tu rol no tiene permisos asignados. Pide a un administrador que te los otorgue.
+        </p>
+
+        <!-- Módulo: Inventario (formulario de registro) -->
+        <section x-show="ruta === 'inventario' && puede('inventario.registrar')">
+          <form @submit.prevent="guardar" class="card">
+            <div class="border-b border-stone-200 px-5 py-4 dark:border-stone-800">
+              <h2 class="font-semibold">Nuevo inventario</h2>
+              <p class="text-sm text-stone-500 dark:text-stone-400">Los totales se calculan en kg: cantidad × unidad + abierto.</p>
+            </div>
+            <!-- En móvil cada producto se apila; desde md es una fila tipo tabla -->
+            <div class="fila-form hidden bg-stone-50 px-5 py-2.5 text-xs font-medium tracking-wide text-stone-500 uppercase md:grid dark:bg-stone-800/60 dark:text-stone-400">
+              <span>Productos</span>
+              <span>Unidad</span>
+              <span>Cantidad</span>
+              <span class="text-right">Peso total (kg)</span>
+              <span>Abierto (kg)</span>
+              <span class="text-right">Total kg</span>
+            </div>
+            <template x-for="it in form.items" :key="it.producto_id">
+              <div class="fila-form border-t border-stone-100 px-5 py-4 md:py-3 dark:border-stone-800">
+                <div class="col-span-2 font-medium md:col-span-1" x-text="it.nombre"></div>
+                <label class="col-span-2 block space-y-1 md:col-span-1">
+                  <span class="text-xs text-stone-500 md:sr-only dark:text-stone-400">Unidad</span>
+                  <select x-model.number="it.unidad_id" class="input">
+                    <template x-for="u in it.unidades" :key="u.id">
+                      <option :value="u.id" :selected="u.id === it.unidad_id" x-text="u.nombre"></option>
+                    </template>
+                  </select>
+                </label>
+                <label class="block space-y-1">
+                  <span class="text-xs text-stone-500 md:sr-only dark:text-stone-400">Cantidad</span>
+                  <input type="number" min="0" step="any" inputmode="decimal" required x-model="it.cantidad" class="input text-right">
+                </label>
+                <div class="space-y-1 text-right">
+                  <span class="block text-xs text-stone-500 md:sr-only dark:text-stone-400">Peso total (kg)</span>
+                  <span class="block py-2 text-sm text-stone-500 tabular-nums md:py-0 dark:text-stone-400" x-text="fmt(peso(it))"></span>
+                </div>
+                <label class="block space-y-1">
+                  <span class="text-xs text-stone-500 md:sr-only dark:text-stone-400">Abierto (kg)</span>
+                  <input type="number" min="0" step="0.001" inputmode="decimal" required x-model="it.abierto" class="input text-right">
+                </label>
+                <div class="space-y-1 text-right">
+                  <span class="block text-xs text-stone-500 md:sr-only dark:text-stone-400">Total kg</span>
+                  <span class="block py-2 text-sm font-semibold tabular-nums md:py-0" x-text="fmt(total(it))"></span>
+                </div>
+              </div>
+            </template>
+            <div class="grid gap-4 border-t border-stone-200 px-5 py-4 sm:grid-cols-[240px_1fr] dark:border-stone-800">
+              <label class="block space-y-1.5">
+                <span class="text-sm font-medium">Hora del inventario</span>
+                <input type="datetime-local" required x-model="form.fecha_hora" class="input">
+              </label>
+              <label class="block space-y-1.5">
+                <span class="text-sm font-medium">Nota <span class="font-normal text-stone-400">(opcional)</span></span>
+                <input type="text" maxlength="255" x-model="form.nota" class="input">
+              </label>
+            </div>
+            <div class="flex justify-end border-t border-stone-200 bg-stone-50 px-5 py-3 dark:border-stone-800 dark:bg-stone-900">
+              <button type="submit" :disabled="enviando" class="btn-primary">Registrar inventario</button>
+            </div>
+          </form>
+        </section>
+
+        <!-- Listado compartido por los módulos Inventario (historial) y Eliminados -->
+        <section x-show="(ruta === 'inventario' && puede('inventario.ver')) || ruta === 'eliminados'" class="space-y-4">
+          <div class="flex items-center justify-between gap-3">
+            <h2 class="font-semibold" x-text="ruta === 'eliminados' ? 'Inventarios eliminados' : 'Historial'"></h2>
+            <div class="flex items-center gap-3">
+              <span class="text-sm text-stone-500" x-show="listaCargando">Cargando…</span>
+              <a x-show="ruta === 'inventario' && puede('inventario.exportar')" href="api/inventarios/exportar" download
+                 @click="if (!lista.length) { $event.preventDefault(); aviso('No hay registros para exportar.'); }"
+                 class="btn-ghost text-green-800 ring-green-200 hover:bg-green-50 dark:text-green-300 dark:ring-green-900 dark:hover:bg-green-950">
+                <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" :d="iconos.descargar"/></svg>
+                Exportar Excel
+              </a>
+            </div>
+          </div>
+
+          <p x-show="!listaCargando && !lista.length"
+             class="card px-5 py-10 text-center text-sm text-stone-500 dark:text-stone-400"
+             x-text="ruta === 'eliminados' ? 'No hay inventarios eliminados.' : 'Aún no hay inventarios registrados.'"></p>
+
+          <template x-for="inv in lista" :key="inv.id">
+            <article class="card">
+              <div class="overflow-x-auto">
+                <table class="tabla">
+                  <thead>
+                    <tr>
+                      <th class="text-left">Productos</th>
+                      <th class="text-right">Cantidad</th>
+                      <th class="hidden text-right sm:table-cell">Peso total (kg)</th>
+                      <th class="text-right">Abierto (kg)</th>
+                      <th class="text-right">Total kg</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <template x-for="i in inv.items" :key="i.producto">
+                      <tr>
+                        <td class="font-medium sm:whitespace-nowrap" x-text="i.producto"></td>
+                        <td class="text-right tabular-nums sm:whitespace-nowrap">
+                          <span x-text="fmtCantidad(i.detalles.cantidad)"></span>
+                          <span class="block text-xs sm:inline text-stone-500 dark:text-stone-400" x-text="i.detalles.unidad"></span>
+                        </td>
+                        <td class="hidden text-right tabular-nums sm:table-cell" x-text="fmt(i.detalles.cantidad_base, 0)"></td>
+                        <td class="text-right tabular-nums" x-text="fmt(i.detalles.abierto)"></td>
+                        <td class="text-right font-semibold tabular-nums whitespace-nowrap">
+                          <span x-show="i.aumento_kg" title="Mayor al inventario anterior"
+                                class="mr-1 text-xs font-medium text-amber-700 dark:text-amber-400" x-text="'▲ +' + fmt(i.aumento_kg)"></span>
+                          <span x-text="fmt(i.total)"></span>
+                        </td>
+                      </tr>
+                    </template>
+                    <tr class="bg-stone-50 dark:bg-stone-800/40">
+                      <td class="font-medium">Hora del Inv.</td>
+                      <td colspan="4">
+                        <div class="flex flex-wrap justify-between gap-x-4">
+                          <span x-text="inv.fecha_texto"></span>
+                          <span class="tabular-nums" x-text="inv.hora"></span>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-stone-200 px-5 py-3 text-sm dark:border-stone-800">
+                <span x-show="inv.creado_por" class="text-stone-500 dark:text-stone-400">Registrado por <span class="font-medium text-stone-700 dark:text-stone-300" x-text="inv.creado_por"></span></span>
+                <span x-show="inv.nota" x-text="inv.nota" class="text-stone-500 italic dark:text-stone-400"></span>
+                <span x-show="inv.eliminado" class="text-red-700 dark:text-red-400">Eliminado el <span x-text="inv.eliminado"></span><span x-show="inv.eliminado_por"> por <span x-text="inv.eliminado_por"></span></span></span>
+                <div class="ml-auto">
+                  <button x-show="ruta === 'inventario' && puede('inventario.eliminar')" @click="eliminar(inv)" type="button"
+                          class="btn-ghost text-red-700 ring-red-200 hover:bg-red-50 dark:text-red-400 dark:ring-red-900 dark:hover:bg-red-950">
+                    <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" :d="iconos.papelera"/></svg>
+                    Eliminar
+                  </button>
+                  <button x-show="ruta === 'eliminados'" @click="restaurar(inv)" type="button"
+                          class="btn-ghost text-amber-800 ring-amber-200 hover:bg-amber-50 dark:text-amber-300 dark:ring-amber-900 dark:hover:bg-amber-950">
+                    <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" :d="iconos.restaurar"/></svg>
+                    Restaurar
+                  </button>
+                </div>
+              </div>
+            </article>
+          </template>
+        </section>
+
+        <!-- Módulo: Usuarios -->
+        <section x-show="ruta === 'usuarios'" class="space-y-4">
+          <div class="flex items-center justify-between gap-4">
+            <p class="text-sm text-stone-500 dark:text-stone-400">Los usuarios no se eliminan: se desactivan y dejan de poder ingresar.</p>
+            <button @click="abrirUsuario()" class="btn-primary shrink-0">
+              <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" :d="iconos.mas"/></svg>
+              Nuevo usuario
+            </button>
+          </div>
+          <div class="card overflow-x-auto">
+            <table class="tabla">
+              <thead>
+                <tr>
+                  <th class="text-left">Nombre</th>
+                  <th class="text-left">Rol</th>
+                  <th class="hidden text-left sm:table-cell">Estado</th>
+                  <th class="hidden text-left md:table-cell">Último acceso</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-for="u in usuarios" :key="u.id">
+                  <tr :class="!u.activo && 'opacity-60'">
+                    <td>
+                      <p class="font-medium"><span x-text="u.nombre"></span> <span x-show="u.id === usuario?.id" class="text-xs font-normal text-stone-500">(tú)</span></p>
+                      <p class="text-xs text-stone-500 dark:text-stone-400"><span x-text="'@' + u.usuario"></span><span x-show="!u.activo" class="sm:hidden"> · Inactivo</span></p>
+                    </td>
+                    <td x-text="u.rol"></td>
+                    <td class="hidden sm:table-cell">
+                      <span :class="u.activo ? 'bg-green-50 text-green-800 ring-green-200 dark:bg-green-950 dark:text-green-300 dark:ring-green-900' : 'bg-stone-100 text-stone-600 ring-stone-200 dark:bg-stone-800 dark:text-stone-400 dark:ring-stone-700'"
+                            class="rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset" x-text="u.activo ? 'Activo' : 'Inactivo'"></span>
+                    </td>
+                    <td class="hidden text-stone-500 md:table-cell dark:text-stone-400" x-text="u.ultimo_acceso || 'Nunca'"></td>
+                    <td class="text-right">
+                      <button x-show="!u.es_admin || usuario?.es_admin" @click="abrirUsuario(u)" type="button"
+                              class="btn-ghost text-stone-700 ring-stone-200 hover:bg-stone-50 dark:text-stone-300 dark:ring-stone-700 dark:hover:bg-stone-800">
+                        <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" :d="iconos.lapiz"/></svg>
+                        Editar
+                      </button>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Módulo: Roles y permisos -->
+        <section x-show="ruta === 'roles'" class="space-y-4">
+          <div class="flex items-center justify-between gap-4">
+            <p class="text-sm text-stone-500 dark:text-stone-400">Cada usuario tiene un rol; el rol define qué puede hacer.</p>
+            <button @click="abrirRol()" class="btn-primary shrink-0">
+              <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" :d="iconos.mas"/></svg>
+              Nuevo rol
+            </button>
+          </div>
+          <template x-for="r in roles" :key="r.id">
+            <article class="card">
+              <div class="flex flex-wrap items-start gap-x-4 gap-y-2 px-5 py-4">
+                <div class="min-w-0 flex-1">
+                  <h3 class="flex items-center gap-2 font-semibold">
+                    <span x-text="r.nombre"></span>
+                    <span x-show="r.es_sistema" class="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-amber-200 ring-inset dark:bg-amber-950 dark:text-amber-300 dark:ring-amber-900">Sistema</span>
+                  </h3>
+                  <p class="text-sm text-stone-500 dark:text-stone-400" x-text="r.descripcion || 'Sin descripción'"></p>
+                  <p class="mt-1 text-xs text-stone-500 dark:text-stone-400" x-text="r.usuarios + (r.usuarios === 1 ? ' usuario' : ' usuarios')"></p>
+                </div>
+                <div x-show="!r.es_sistema" class="flex gap-2">
+                  <button @click="abrirRol(r)" type="button" class="btn-ghost text-stone-700 ring-stone-200 hover:bg-stone-50 dark:text-stone-300 dark:ring-stone-700 dark:hover:bg-stone-800">
+                    <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" :d="iconos.lapiz"/></svg>
+                    Editar
+                  </button>
+                  <button @click="eliminarRol(r)" type="button" :disabled="r.usuarios > 0" :title="r.usuarios > 0 ? 'Tiene usuarios asignados' : ''"
+                          class="btn-ghost text-red-700 ring-red-200 hover:bg-red-50 dark:text-red-400 dark:ring-red-900 dark:hover:bg-red-950">
+                    <svg class="size-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" :d="iconos.papelera"/></svg>
+                    Eliminar
+                  </button>
+                </div>
+              </div>
+              <div class="flex flex-wrap gap-1.5 border-t border-stone-200 px-5 py-3 dark:border-stone-800">
+                <template x-for="c in r.permisos" :key="c">
+                  <span class="rounded-md bg-stone-100 px-2 py-1 text-xs text-stone-700 dark:bg-stone-800 dark:text-stone-300" x-text="nombrePermiso(c)"></span>
+                </template>
+                <span x-show="!r.permisos.length" class="text-xs text-stone-500">Sin permisos</span>
+              </div>
+            </article>
+          </template>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- Modal (usuario, rol o contraseña) -->
+  <div x-cloak x-show="modal" class="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4" @keydown.escape.window="modal = null">
+    <div x-show="modal" x-transition.opacity class="absolute inset-0 bg-stone-950/50" @click="modal = null"></div>
+    <div x-show="modal" x-transition x-ref="modal" role="dialog" aria-modal="true"
+         class="relative max-h-[92vh] w-full overflow-y-auto rounded-t-2xl bg-white shadow-xl sm:max-w-lg sm:rounded-2xl dark:bg-stone-900">
+
+      <!-- Usuario -->
+      <form x-show="modal === 'usuario'" @submit.prevent="guardarUsuario" class="space-y-4 p-6">
+        <h2 class="text-lg font-semibold" x-text="fUsuario.id ? 'Editar usuario' : 'Nuevo usuario'"></h2>
+        <label class="block space-y-1.5">
+          <span class="text-sm font-medium">Usuario</span>
+          <input type="text" x-model="fUsuario.usuario" :disabled="!!fUsuario.id" :required="!fUsuario.id" pattern="[a-zA-Z0-9._\-]{3,50}"
+                 autocapitalize="none" spellcheck="false" autocomplete="off" class="input disabled:opacity-60">
+          <span x-show="!fUsuario.id" class="block text-xs text-stone-500">3 a 50 caracteres: letras, números, punto o guiones. No se puede cambiar después.</span>
+        </label>
+        <label class="block space-y-1.5">
+          <span class="text-sm font-medium">Nombre completo</span>
+          <input type="text" x-model="fUsuario.nombre" required maxlength="100" class="input">
+        </label>
+        <label class="block space-y-1.5">
+          <span class="text-sm font-medium">Rol</span>
+          <select x-model.number="fUsuario.rol_id" required :disabled="fUsuario.esYo" class="input disabled:opacity-60">
+            <option value="" disabled>Selecciona un rol</option>
+            <template x-for="r in rolesAsignables" :key="r.id">
+              <option :value="r.id" :selected="r.id === fUsuario.rol_id" x-text="r.nombre"></option>
+            </template>
+          </select>
+        </label>
+        <label class="block space-y-1.5">
+          <span class="text-sm font-medium" x-text="fUsuario.id ? 'Nueva contraseña' : 'Contraseña'"></span>
+          <input type="password" x-model="fUsuario.password" :required="!fUsuario.id" minlength="8" autocomplete="new-password" class="input">
+          <span class="block text-xs text-stone-500" x-text="fUsuario.id ? 'Déjala vacía para no cambiarla. Mínimo 8 caracteres.' : 'Mínimo 8 caracteres.'"></span>
+        </label>
+        <label class="flex items-center gap-2 text-sm" :class="fUsuario.esYo && 'opacity-60'">
+          <input type="checkbox" x-model="fUsuario.activo" :disabled="fUsuario.esYo" class="size-4 rounded accent-amber-700">
+          Activo (puede ingresar)
+        </label>
+        <p x-show="fUsuario.esYo" class="text-xs text-stone-500">No puedes cambiar tu propio rol ni desactivarte.</p>
+        <p x-show="modalError" x-text="modalError" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-300"></p>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" @click="modal = null" class="btn-ghost text-stone-700 ring-stone-300 hover:bg-stone-50 dark:text-stone-300 dark:ring-stone-700 dark:hover:bg-stone-800">Cancelar</button>
+          <button type="submit" :disabled="enviando" class="btn-primary">Guardar</button>
+        </div>
+      </form>
+
+      <!-- Rol -->
+      <form x-show="modal === 'rol'" @submit.prevent="guardarRol" class="space-y-4 p-6">
+        <h2 class="text-lg font-semibold" x-text="fRol.id ? 'Editar rol' : 'Nuevo rol'"></h2>
+        <label class="block space-y-1.5">
+          <span class="text-sm font-medium">Nombre</span>
+          <input type="text" x-model="fRol.nombre" required maxlength="50" class="input">
+        </label>
+        <label class="block space-y-1.5">
+          <span class="text-sm font-medium">Descripción <span class="font-normal text-stone-400">(opcional)</span></span>
+          <input type="text" x-model="fRol.descripcion" maxlength="255" class="input">
+        </label>
+        <fieldset class="space-y-3">
+          <legend class="text-sm font-medium">Permisos</legend>
+          <template x-for="g in permisosPorModulo" :key="g.modulo">
+            <div class="rounded-lg ring-1 ring-stone-200 dark:ring-stone-800">
+              <p class="border-b border-stone-200 bg-stone-50 px-3 py-2 text-xs font-medium tracking-wide text-stone-500 uppercase dark:border-stone-800 dark:bg-stone-800/60 dark:text-stone-400" x-text="g.modulo"></p>
+              <div class="space-y-2 p-3">
+                <template x-for="p in g.permisos" :key="p.clave">
+                  <label class="flex items-center gap-2 text-sm">
+                    <input type="checkbox" :value="p.clave" x-model="fRol.permisos" class="size-4 rounded accent-amber-700">
+                    <span x-text="p.nombre"></span>
+                  </label>
+                </template>
+              </div>
+            </div>
+          </template>
+        </fieldset>
+        <p x-show="modalError" x-text="modalError" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-300"></p>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" @click="modal = null" class="btn-ghost text-stone-700 ring-stone-300 hover:bg-stone-50 dark:text-stone-300 dark:ring-stone-700 dark:hover:bg-stone-800">Cancelar</button>
+          <button type="submit" :disabled="enviando" class="btn-primary">Guardar</button>
+        </div>
+      </form>
+
+      <!-- Alerta: inventario mayor al anterior -->
+      <form x-show="modal === 'alerta'" @submit.prevent="confirmarAlerta" class="space-y-4 p-6">
+        <div class="flex items-start gap-3">
+          <div class="grid size-10 shrink-0 place-items-center rounded-full bg-amber-100 text-lg text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">⚠</div>
+          <div>
+            <h2 class="text-lg font-semibold">El inventario es mayor al anterior</h2>
+            <p class="text-sm text-stone-500 dark:text-stone-400">
+              Comparado con el del <span x-text="comparacion.anterior?.fecha_texto"></span>, <span x-text="comparacion.anterior?.hora"></span>.
+            </p>
+          </div>
+        </div>
+        <div class="overflow-hidden rounded-lg ring-1 ring-stone-200 dark:ring-stone-800">
+          <table class="tabla">
+            <thead>
+              <tr>
+                <th class="text-left">Producto</th>
+                <th class="text-right">Anterior (kg)</th>
+                <th class="text-right">Nuevo (kg)</th>
+                <th class="text-right">Diferencia</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="a in comparacion.aumentos" :key="a.producto_id">
+                <tr>
+                  <td class="font-medium" x-text="a.producto"></td>
+                  <td class="text-right tabular-nums" x-text="fmt(a.anterior_kg)"></td>
+                  <td class="text-right tabular-nums" x-text="fmt(a.nuevo_kg)"></td>
+                  <td class="text-right font-semibold text-amber-700 tabular-nums dark:text-amber-400" x-text="'+' + fmt(a.diferencia_kg)"></td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+        <p class="text-sm text-stone-600 dark:text-stone-300">
+          Puedes guardarlo igual<span x-text="comparacion.canales.length ? '; se enviará una alerta por ' + comparacion.canales.join(' y ') + '.' : '; la alerta quedará registrada.'"></span>
+        </p>
+        <p x-show="modalError" x-text="modalError" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-300"></p>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" data-foco @click="modal = null" class="btn-ghost text-stone-700 ring-stone-300 hover:bg-stone-50 dark:text-stone-300 dark:ring-stone-700 dark:hover:bg-stone-800">Revisar</button>
+          <button type="submit" :disabled="enviando" class="btn-primary">Guardar de todos modos</button>
+        </div>
+      </form>
+
+      <!-- Cambiar contraseña -->
+      <form x-show="modal === 'password'" @submit.prevent="guardarPassword" class="space-y-4 p-6">
+        <h2 class="text-lg font-semibold">Cambiar contraseña</h2>
+        <input type="text" :value="usuario?.usuario" autocomplete="username" class="hidden" readonly>
+        <label class="block space-y-1.5">
+          <span class="text-sm font-medium">Contraseña actual</span>
+          <input type="password" x-model="fPassword.actual" required autocomplete="current-password" class="input">
+        </label>
+        <label class="block space-y-1.5">
+          <span class="text-sm font-medium">Nueva contraseña</span>
+          <input type="password" x-model="fPassword.nueva" required minlength="8" autocomplete="new-password" class="input">
+          <span class="block text-xs text-stone-500">Mínimo 8 caracteres.</span>
+        </label>
+        <label class="block space-y-1.5">
+          <span class="text-sm font-medium">Repite la nueva contraseña</span>
+          <input type="password" x-model="fPassword.confirmar" required minlength="8" autocomplete="new-password" class="input">
+        </label>
+        <p x-show="modalError" x-text="modalError" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-300"></p>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" @click="modal = null" class="btn-ghost text-stone-700 ring-stone-300 hover:bg-stone-50 dark:text-stone-300 dark:ring-stone-700 dark:hover:bg-stone-800">Cancelar</button>
+          <button type="submit" :disabled="enviando" class="btn-primary">Cambiar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Avisos -->
+  <div class="pointer-events-none fixed inset-x-0 bottom-0 z-[60] flex flex-col items-center gap-2 p-4 sm:items-end">
+    <template x-for="a in avisos" :key="a.id">
+      <div x-transition
+           :class="a.tipo === 'error' ? 'bg-red-700' : 'bg-stone-900 dark:bg-stone-700'"
+           class="pointer-events-auto rounded-lg px-4 py-2.5 text-sm text-white shadow-lg" x-text="a.msg"></div>
+    </template>
+  </div>
+</body>
+</html>
