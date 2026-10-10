@@ -1,6 +1,6 @@
 -- Instalación nueva: ejecutar este archivo y luego las migraciones de sql/ en orden de fecha.
-CREATE DATABASE IF NOT EXISTS regharina CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE regharina;
+CREATE DATABASE IF NOT EXISTS inventario CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE inventario;
 
 CREATE TABLE IF NOT EXISTS unidades_medida (
   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,

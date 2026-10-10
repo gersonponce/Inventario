@@ -1,5 +1,5 @@
 -- Alertas cuando un inventario supera al anterior (por producto) y registro de avisos enviados
-USE regharina;
+USE inventario;
 
 CREATE TABLE IF NOT EXISTS alertas_inventario (
   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,

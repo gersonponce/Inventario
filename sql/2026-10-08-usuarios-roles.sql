@@ -1,5 +1,5 @@
 -- Migración: usuarios, roles y permisos (reemplaza la contraseña compartida)
-USE regharina;
+USE inventario;
 
 CREATE TABLE IF NOT EXISTS permisos (
   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -59,5 +59,5 @@ INSERT IGNORE INTO rol_permiso (rol_id, permiso_id)
   SELECT 2, id FROM permisos WHERE clave IN ('inventario.ver', 'inventario.registrar');
 
 -- La app puede borrar solo asignaciones de permisos y roles sin usuarios (inventarios y usuarios nunca)
-GRANT DELETE ON regharina.rol_permiso TO 'regharina'@'127.0.0.1';
-GRANT DELETE ON regharina.roles TO 'regharina'@'127.0.0.1';
+GRANT DELETE ON inventario.rol_permiso TO 'regharina'@'127.0.0.1';
+GRANT DELETE ON inventario.roles TO 'regharina'@'127.0.0.1';

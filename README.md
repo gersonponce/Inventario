@@ -22,7 +22,7 @@ composer install                       # crea vendor/
 cp .env.example .env                   # completar credenciales (chmod 640, dueño www-data)
 curl -sLo bin/tailwindcss https://github.com/tailwindlabs/tailwindcss/releases/download/v4.1.11/tailwindcss-linux-x64
 chmod +x bin/tailwindcss && ./build.sh # solo si se cambian clases CSS (app.css compilado ya está en el repo)
-mysql regharina < schema.sql           # BD nueva: luego aplicar sql/*.sql en orden de fecha
+mysql < schema.sql                     # BD nueva: luego aplicar sql/*.sql en orden de fecha
 ```
 No se suben al repositorio: `.env`, `vendor/` ni `bin/tailwindcss` (ver `.gitignore`).
 
@@ -34,7 +34,7 @@ No se suben al repositorio: `.env`, `vendor/` ni `bin/tailwindcss` (ver `.gitign
 |---|---|
 | Frontend | HTML estático (`public/index.html`) + **Alpine.js 3.14.9** (servido localmente) + **Tailwind CSS v4.1.11** compilado |
 | API | **PHP 8.4** + **Slim 4** (`slim/slim`, `slim/psr7`) vía Composer |
-| Base de datos | **MySQL 8.0** local, BD `regharina` |
+| Base de datos | **MySQL 8.0** local, BD `inventario` |
 | Servidor web | **nginx 1.24** + php8.4-fpm |
 
 Particularidades del servidor:
@@ -92,7 +92,7 @@ Un canal de alertas se activa solo si su configuración está completa. Vacío =
 
 ---
 
-## Base de datos (`regharina`)
+## Base de datos (`inventario`)
 
 | Tabla | Contenido |
 |---|---|
@@ -116,7 +116,7 @@ al guardar, así el histórico no cambia si se modifica una unidad.
 
 **Permisos del usuario MySQL `regharina`:** `SELECT, INSERT, UPDATE` en toda la BD y `DELETE` solo en
 `roles` y `rol_permiso`. La app **no puede borrar** inventarios ni usuarios (se marcan / desactivan).
-Para tareas administrativas: `mysql regharina` como root (auth_socket).
+Para tareas administrativas: `mysql inventario` como root (auth_socket).
 
 **Zona horaria:** las fechas de la app se guardan en hora de Lima (`America/Lima`, sesión MySQL `-05:00`).
 Las columnas `created_at`/`updated_at` (TIMESTAMP) se ven en UTC desde la consola de MySQL.
@@ -134,7 +134,7 @@ El sistema no está atado a la harina:
 - **Total = cantidad × factor + abierto**, siempre expresado en la unidad base del producto.
 - Las alertas comparan cada producto con el inventario anterior, sin importar cuál sea.
 
-Aún no hay pantalla para administrarlos; se agregan por SQL (`mysql regharina` como root):
+Aún no hay pantalla para administrarlos; se agregan por SQL (`mysql inventario` como root):
 
 ```sql
 -- Otro producto medido en kg, con una presentación nueva
@@ -254,7 +254,7 @@ cd /var/www/projects/inventario
 COMPOSER_ALLOW_SUPERUSER=1 composer dump-autoload -o   # tras crear clases nuevas en src/
 chown -R www-data:www-data . && chmod 640 .env         # permisos tras editar como root
 php bin/probar-notificaciones.php            # mensaje de prueba a Telegram/Slack
-mysql regharina                              # consola MySQL (root)
+mysql inventario                             # consola MySQL (root)
 grep regharina /var/log/nginx/error.log      # errores PHP (se registran con prefijo "regharina:")
 ```
 
